@@ -1,4 +1,5 @@
 import Image from "next/image";
+import Link from "next/link";
 import { Suspense } from "react";
 import { db } from "@/lib/db";
 import { requireUser, type CurrentUser } from "@/lib/auth";
@@ -77,6 +78,12 @@ function StaffHome({ user }: { user: CurrentUser }) {
     <section>
       <h1 className="staff-greeting">{greeting(user)}</h1>
       <p className="muted">{roleLabel(user.role, user.gender)}</p>
+      {user.role === "admin" && (
+        <Link href="/admin/users" className="staff-card admin-link">
+          <strong>{text.admin.homeLink}</strong>
+          <span className="muted">{text.admin.homeHint}</span>
+        </Link>
+      )}
       <div className="staff-card">
         <p>{text.home.staffSoon}</p>
       </div>

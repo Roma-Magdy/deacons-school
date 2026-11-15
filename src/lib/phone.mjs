@@ -4,6 +4,15 @@ const ARABIC_INDIC = "٠١٢٣٤٥٦٧٨٩";
 const EXTENDED_ARABIC_INDIC = "۰۱۲۳۴۵۶۷۸۹";
 
 /**
+ * "+201012345678" -> "01012345678" (how people write Egyptian numbers). Other numbers are returned unchanged.
+ *
+ * @param {string} phone
+ */
+export function toLocalPhone(phone) {
+  return /^\+201[0125]\d{8}$/.test(phone) ? "0" + phone.slice(3) : phone;
+}
+
+/**
  * Normalizes a phone number to international format, e.g. "+201012345678".
  * Accepts Egyptian numbers written as 01012345678, 201012345678, +201012345678,
  * 00201012345678, with spaces/dashes, and with Arabic-Indic digits.
@@ -26,6 +35,8 @@ export function normalizePhone(input) {
 
   // Egyptian mobile: 01[0125] + 8 digits
   if (/^01[0125]\d{8}$/.test(s)) return "+20" + s.slice(1);
+  // Excel drops the leading zero from numbers: 1012345678
+  if (/^1[0125]\d{8}$/.test(s)) return "+20" + s;
   if (/^201[0125]\d{8}$/.test(s)) return "+" + s;
   if (/^\+201[0125]\d{8}$/.test(s)) return s;
 

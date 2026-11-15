@@ -49,6 +49,13 @@ export async function requireUser(): Promise<CurrentUser> {
   return user;
 }
 
+/** For admin-only pages and actions: anyone else is sent to their own home page. Call this inside every admin server action too. */
+export async function requireAdmin(): Promise<CurrentUser> {
+  const user = await requireUser();
+  if (user.role !== "admin") redirect("/home");
+  return user;
+}
+
 export function isStaff(role: Role) {
   return role === "servant" || role === "branch_leader" || role === "admin";
 }
