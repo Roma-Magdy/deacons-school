@@ -8,7 +8,9 @@ Stack: Next.js (App Router) · Postgres (Neon) · Vercel.
 
 Step 1 of the build plan is done:
 
-- Arabic / right-to-left layout with the Cairo font
+- Arabic / right-to-left layout with the Cairo font, in light Egyptian Arabic
+- School logo and a theme built from its colors (light and dark mode); playful kid home page, calmer servant home page
+- Greetings by role and gender (شماسنا الشاطر / تاسونتنا الشاطرة / يا باسون / يا تاسوني)
 - Database schema (users, terms, branches, reasons, shapes, star awards)
 - Phone number + password login (lockout for 15 minutes after 5 wrong passwords)
 - A placeholder home page for kids (shows their star total) and for servants/admins
@@ -26,7 +28,7 @@ Next: admin screens to add kids and servants, then the servant "add stars" scree
 2. Create the `.env` file. If you ran Neon's `neon init`, it already contains `DATABASE_URL`. Add the other lines from `.env.example`:
 
    - `SESSION_SECRET` — generate one with `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`
-   - `SEED_ADMIN_PHONE`, `SEED_ADMIN_PASSWORD` (at least 8 characters), `SEED_ADMIN_NAME` — the first admin account
+   - `SEED_ADMIN_PHONE`, `SEED_ADMIN_PASSWORD` (at least 8 characters), `SEED_ADMIN_NAME`, `SEED_ADMIN_GENDER` (`male` or `female`) — the first admin account
 
    `.env` is ignored by git. Never commit it.
 
@@ -45,7 +47,7 @@ Next: admin screens to add kids and servants, then the servant "add stars" scree
 
    Log in with the admin phone and password you put in `.env`.
 
-`db:migrate` and `db:seed` are safe to run again; they skip anything that already exists.
+`db:migrate` and `db:seed` are safe to run again; they skip anything that already exists. If the admin account already exists without a gender, running `db:seed` with `SEED_ADMIN_GENDER` set fills it in (it never overwrites a gender that is already set).
 
 ## Deploying to Vercel
 
@@ -53,7 +55,13 @@ Next: admin screens to add kids and servants, then the servant "add stars" scree
 2. In the project's Environment Variables add `DATABASE_URL` (use Neon's pooled connection string, whose host contains `-pooler`) and `SESSION_SECRET`.
 3. Deploy. Run `npm run db:migrate` and `npm run db:seed` from your computer; they use the same database.
 
+## Changing the wording
+
+Every sentence the app shows is in `src/lib/strings.ts`. Edit it there; no other file needs to change.
+
 ## Notes
+
+- The logo is `public/logo.png`. The browser-tab icon is `src/app/icon.png` and `src/app/apple-icon.png`.
 
 - Star totals are always calculated from the `star_awards` table (a ledger). Mistakes are fixed by voiding an award, not by editing numbers.
 - Shapes are placeholders (emoji) for now. To use designed images later, set `image_url` on a shape.

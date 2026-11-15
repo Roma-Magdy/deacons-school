@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { normalizePhone } from "@/lib/phone.mjs";
 import { createSession } from "@/lib/session";
+import { text } from "@/lib/strings";
 
 export type LoginState = { error?: string };
 
@@ -18,15 +19,13 @@ function getDummyHash() {
   return dummyHash;
 }
 
-const GENERIC_ERROR = "رقم الهاتف أو كلمة المرور غير صحيحة";
-
 export async function login(_prev: LoginState, formData: FormData): Promise<LoginState> {
   const phone = normalizePhone(formData.get("phone"));
   const password = formData.get("password");
 
-  if (!phone) return { error: "من فضلك اكتب رقم هاتف صحيح" };
+  if (!phone) return { error: text.login.errors.invalidPhone };
   if (typeof password !== "string" || password.length === 0) {
-    return { error: "من فضلك اكتب كلمة المرور" };
+    return { error: text.login.errors.missingPassword };
   }
 
   const { rows } = await db.query(
@@ -38,7 +37,7 @@ export async function login(_prev: LoginState, formData: FormData): Promise<Logi
   const user = rows[0];
 
   if (user?.locked_until && new Date(user.locked_until) > new Date()) {
-    return { error: "تم إيقاف المحاولات مؤقتًا بسبب كثرة الأخطاء. حاول بعد قليل أو كلّم أحد الخدّام." };
+    return { error: text.login.errors.locked };
   }
 
   const ok = await bcrypt.compare(password, user?.password_hash ?? getDummyHash());
@@ -55,7 +54,7 @@ export async function login(_prev: LoginState, formData: FormData): Promise<Logi
         [user.id, MAX_FAILED_ATTEMPTS, LOCK_MINUTES],
       );
     }
-    return { error: GENERIC_ERROR };
+    return { error: text.login.errors.wrongCredentials };
   }
 
   await db.query("update users set failed_attempts = 0, locked_until = null where id = $1", [user.id]);

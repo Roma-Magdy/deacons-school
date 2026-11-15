@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
+import { text } from "@/lib/strings";
 import { login, type LoginState } from "./actions";
 
 const initialState: LoginState = {};
@@ -11,7 +12,7 @@ export default function LoginForm() {
   return (
     <form action={formAction} className="form">
       <label className="field">
-        <span>رقم الهاتف</span>
+        <span>{text.login.phoneLabel}</span>
         <input
           name="phone"
           type="tel"
@@ -24,7 +25,7 @@ export default function LoginForm() {
       </label>
 
       <label className="field">
-        <span>كلمة المرور</span>
+        <span>{text.login.passwordLabel}</span>
         <input name="password" type="password" autoComplete="current-password" dir="ltr" required />
       </label>
 
@@ -35,7 +36,7 @@ export default function LoginForm() {
       )}
 
       <button type="submit" className="button" disabled={pending}>
-        {pending ? "جارٍ الدخول..." : "دخول"}
+        {pending ? text.login.submitting : text.login.submit}
       </button>
     </form>
   );

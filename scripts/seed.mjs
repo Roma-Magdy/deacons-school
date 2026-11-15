@@ -5,7 +5,7 @@ import bcrypt from "bcryptjs";
 import pg from "pg";
 import { normalizePhone } from "../src/lib/phone.mjs";
 
-const { DATABASE_URL, SEED_ADMIN_PHONE, SEED_ADMIN_PASSWORD, SEED_ADMIN_NAME } = process.env;
+const { DATABASE_URL, SEED_ADMIN_PHONE, SEED_ADMIN_PASSWORD, SEED_ADMIN_NAME, SEED_ADMIN_GENDER } = process.env;
 if (!DATABASE_URL) {
   console.error("DATABASE_URL is not set. Run the Neon setup first (see README).");
   process.exit(1);
@@ -80,14 +80,23 @@ try {
     if (!phone) throw new Error("SEED_ADMIN_PHONE is not a valid phone number.");
     if (SEED_ADMIN_PASSWORD.length < 8) throw new Error("SEED_ADMIN_PASSWORD must be at least 8 characters.");
 
-    const exists = await client.query("select 1 from users where phone = $1", [phone]);
+    const gender = SEED_ADMIN_GENDER ? SEED_ADMIN_GENDER.trim().toLowerCase() : null;
+    if (gender && gender !== "male" && gender !== "female") {
+      throw new Error('SEED_ADMIN_GENDER must be "male" or "female".');
+    }
+
+    const exists = await client.query("select id, gender from users where phone = $1", [phone]);
     if (exists.rowCount === 0) {
       const hash = await bcrypt.hash(SEED_ADMIN_PASSWORD, 12);
       await client.query(
-        "insert into users (phone, password_hash, full_name, role) values ($1, $2, $3, 'admin')",
-        [phone, hash, SEED_ADMIN_NAME || "المدير"],
+        "insert into users (phone, password_hash, full_name, role, gender) values ($1, $2, $3, 'admin', $4)",
+        [phone, hash, SEED_ADMIN_NAME || "المدير", gender],
       );
       console.log(`Created admin account for ${phone}.`);
+    } else if (gender && exists.rows[0].gender === null) {
+      // Only fills in a missing gender; never overwrites one that is already set.
+      await client.query("update users set gender = $2 where id = $1", [exists.rows[0].id, gender]);
+      console.log("Admin account already exists; set its gender.");
     } else {
       console.log("Admin account already exists; left unchanged.");
     }

@@ -4,7 +4,9 @@ import { redirect } from "next/navigation";
 import { db } from "./db";
 import { readSession } from "./session";
 
-export type Role = "kid" | "servant" | "branch_leader" | "admin";
+import type { Gender, Role } from "./strings";
+
+export type { Gender, Role };
 
 export type CurrentUser = {
   id: number;
@@ -13,6 +15,7 @@ export type CurrentUser = {
   role: Role;
   grade: number | null;
   shapeId: number | null;
+  gender: Gender | null;
 };
 
 /** The logged-in user, re-read from the database on every request so deactivation and role changes apply immediately. */
@@ -21,7 +24,7 @@ export const getCurrentUser = cache(async (): Promise<CurrentUser | null> => {
   if (id === null) return null;
 
   const { rows } = await db.query(
-    `select id, full_name, phone, role, grade, shape_id
+    `select id, full_name, phone, role, grade, shape_id, gender
        from users
       where id = $1 and is_active`,
     [id],
@@ -36,6 +39,7 @@ export const getCurrentUser = cache(async (): Promise<CurrentUser | null> => {
     role: row.role,
     grade: row.grade,
     shapeId: row.shape_id === null ? null : Number(row.shape_id),
+    gender: row.gender,
   };
 });
 

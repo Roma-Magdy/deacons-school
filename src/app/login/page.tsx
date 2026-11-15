@@ -1,9 +1,11 @@
+import Image from "next/image";
 import { Suspense } from "react";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
+import { SCHOOL_NAME, text } from "@/lib/strings";
 import LoginForm from "./login-form";
 
-export const metadata = { title: "تسجيل الدخول" };
+export const metadata = { title: text.login.pageTitle };
 
 // If someone who is already logged in opens this page, send them to their home page.
 async function RedirectIfLoggedIn() {
@@ -13,10 +15,12 @@ async function RedirectIfLoggedIn() {
 
 export default function LoginPage() {
   return (
-    <main className="center-card">
-      <h1>مدرسة الشمامسة</h1>
-      <p className="muted">سجّل دخولك برقم الهاتف وكلمة المرور</p>
-      <LoginForm />
+    <main className="login-wrap">
+      <div className="login-card">
+        <Image src="/logo.png" alt={SCHOOL_NAME} width={560} height={640} priority className="login-logo" />
+        <p className="muted">{text.login.subtitle}</p>
+        <LoginForm />
+      </div>
       <Suspense>
         <RedirectIfLoggedIn />
       </Suspense>

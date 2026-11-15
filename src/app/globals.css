@@ -1,26 +1,58 @@
+/* Theme colors come from the school logo: gold halo, terracotta robe, cream parchment, soft lavender hood, leaf yellow-green. */
 :root {
-  --bg: #fbf7ef;
+  --bg: #fbf4e6;
+  --bg-accent: #f6e7c4;
   --surface: #ffffff;
-  --text: #2b2118;
-  --muted: #7a6c5d;
-  --primary: #8a1c1c;
+  --text: #3a2418;
+  --muted: #7d6654;
+  --primary: #b5462a;
+  --primary-hover: #9c3a21;
   --primary-text: #ffffff;
-  --border: #e6dccb;
+  --gold: #e8a33d;
+  --gold-soft: #fbe3a8;
+  --leaf: #c9cf5a;
+  --lavender: #e8e0f4;
+  --border: #ecdcba;
   --error: #b42318;
-  --radius: 14px;
+  --error-bg: #fdecea;
+  --radius: 16px;
+  --shadow: 0 6px 20px rgba(120, 70, 20, 0.12);
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --bg: #17120d;
-    --surface: #221b14;
-    --text: #f3eadc;
-    --muted: #b3a48f;
-    --primary: #d9534f;
-    --primary-text: #1a0f0f;
-    --border: #3a2f23;
-    --error: #ff8a80;
+    --bg: #1d130d;
+    --bg-accent: #2a1b11;
+    --surface: #2b1d14;
+    --text: #f6e9d4;
+    --muted: #c0a98f;
+    --primary: #e0674a;
+    --primary-hover: #ea7a5f;
+    --primary-text: #1d0e08;
+    --gold: #f0b455;
+    --gold-soft: #4a3513;
+    --leaf: #aab047;
+    --lavender: #3a3150;
+    --border: #44301f;
+    --error: #ff9a8f;
+    --error-bg: #46201c;
+    --shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
     color-scheme: dark;
+  }
+}
+
+/* The logo has black lettering and a transparent background, so in dark mode it sits on a cream plate to stay readable. */
+@media (prefers-color-scheme: dark) {
+  .login-logo,
+  .brand img {
+    background: #fbf4e6;
+    border-radius: 18px;
+    padding: 8px;
+  }
+
+  .brand img {
+    border-radius: 12px;
+    padding: 3px;
   }
 }
 
@@ -44,65 +76,80 @@ body {
 }
 
 h1 {
-  font-size: 1.5rem;
-  line-height: 1.3;
+  font-size: 1.4rem;
+  line-height: 1.4;
 }
 
 .muted {
   color: var(--muted);
 }
 
+/* ---------- layout ---------- */
+
 .page {
   width: 100%;
   max-width: 640px;
   margin-inline: auto;
-  padding: 16px;
+  padding: 0 16px 32px;
 }
 
-.center-card {
-  width: 100%;
-  max-width: 420px;
-  margin: 12vh auto 0;
-  padding: 24px 16px;
-  display: grid;
-  gap: 8px;
-  text-align: center;
-}
-
-.topbar {
+.header {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
   gap: 12px;
-  margin-bottom: 20px;
+  padding: 12px 0;
 }
 
-.card {
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 700;
+  color: var(--primary);
+  line-height: 1.2;
+}
+
+.brand img {
+  width: 44px;
+  height: auto;
+}
+
+.login-wrap {
+  min-height: 100svh;
+  display: grid;
+  place-items: center;
+  padding: 24px 16px;
+  background:
+    radial-gradient(circle at 20% 10%, var(--gold-soft) 0, transparent 45%),
+    radial-gradient(circle at 85% 90%, var(--lavender) 0, transparent 40%), var(--bg);
+}
+
+.login-card {
+  width: 100%;
+  max-width: 400px;
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 20px;
-}
-
-.stars-card {
+  border-radius: 24px;
+  box-shadow: var(--shadow);
+  padding: 24px 20px 28px;
   text-align: center;
+  display: grid;
+  gap: 6px;
 }
 
-.shape-big {
-  font-size: 4rem;
-  line-height: 1.2;
+.login-logo {
+  width: min(62%, 220px);
+  height: auto;
+  margin: 0 auto 6px;
 }
 
-.total {
-  font-size: 3rem;
-  font-weight: 700;
-  line-height: 1.2;
-}
+/* ---------- forms and buttons ---------- */
 
 .form {
   display: grid;
   gap: 14px;
-  margin-top: 12px;
+  margin-top: 14px;
   text-align: start;
 }
 
@@ -115,27 +162,40 @@ h1 {
 .field input {
   font: inherit;
   padding: 12px 14px;
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  background: var(--surface);
+  border: 2px solid var(--border);
+  border-radius: 12px;
+  background: var(--bg);
   color: var(--text);
   text-align: start;
 }
 
 .field input:focus-visible {
-  outline: 2px solid var(--primary);
-  outline-offset: 1px;
+  outline: none;
+  border-color: var(--gold);
+  box-shadow: 0 0 0 3px var(--gold-soft);
 }
 
 .button {
   font: inherit;
   font-weight: 700;
-  padding: 12px 18px;
+  font-size: 1.05rem;
+  padding: 12px 20px;
   border: 0;
-  border-radius: 10px;
+  border-radius: 999px;
   background: var(--primary);
   color: var(--primary-text);
   cursor: pointer;
+  box-shadow: 0 3px 0 rgba(0, 0, 0, 0.18);
+  transition: transform 0.08s ease, background 0.15s ease;
+}
+
+.button:hover {
+  background: var(--primary-hover);
+}
+
+.button:active {
+  transform: translateY(2px);
+  box-shadow: none;
 }
 
 .button:disabled {
@@ -146,10 +206,133 @@ h1 {
 .button.secondary {
   background: transparent;
   color: var(--text);
-  border: 1px solid var(--border);
+  border: 2px solid var(--border);
+  box-shadow: none;
+  padding: 6px 16px;
+  font-size: 0.95rem;
 }
 
 .error {
   color: var(--error);
+  background: var(--error-bg);
+  border-radius: 12px;
+  padding: 10px 14px;
   font-weight: 600;
+}
+
+/* ---------- kid home: colorful and playful ---------- */
+
+.kid-hero {
+  position: relative;
+  overflow: hidden;
+  text-align: center;
+  padding: 24px 16px 28px;
+  border-radius: 28px;
+  background:
+    radial-gradient(circle at 15% 15%, var(--gold-soft) 0, transparent 50%),
+    radial-gradient(circle at 90% 85%, var(--lavender) 0, transparent 50%), var(--surface);
+  border: 2px solid var(--gold);
+  box-shadow: var(--shadow);
+}
+
+.kid-greeting {
+  font-size: 1.5rem;
+  font-weight: 800;
+  line-height: 1.4;
+  color: var(--primary);
+}
+
+.kid-grade {
+  display: inline-block;
+  margin-top: 4px;
+  padding: 2px 14px;
+  border-radius: 999px;
+  background: var(--lavender);
+  color: var(--text);
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.shape-bubble {
+  width: 150px;
+  height: 150px;
+  margin: 18px auto 6px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #fff 0, var(--gold-soft) 60%, var(--gold) 100%);
+  box-shadow: 0 8px 0 rgba(0, 0, 0, 0.1), var(--shadow);
+  font-size: 5.5rem;
+  line-height: 1;
+  animation: bob 2.8s ease-in-out infinite;
+}
+
+.shape-bubble img {
+  width: 100px;
+  height: 100px;
+  object-fit: contain;
+}
+
+.kid-stars {
+  font-size: 2rem;
+  font-weight: 800;
+  line-height: 1.4;
+}
+
+.kid-stars .count {
+  color: var(--primary);
+  font-size: 2.6rem;
+}
+
+.kid-stars-shape img {
+  vertical-align: middle;
+}
+
+.kid-next {
+  margin-top: 6px;
+  font-weight: 700;
+  color: var(--muted);
+}
+
+.kid-next img {
+  vertical-align: middle;
+}
+
+.kid-soon {
+  margin-top: 14px;
+  padding: 10px 14px;
+  border-radius: 14px;
+  background: var(--bg-accent);
+  font-weight: 600;
+}
+
+@keyframes bob {
+  0%,
+  100% {
+    transform: translateY(0) rotate(-3deg);
+  }
+  50% {
+    transform: translateY(-8px) rotate(3deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .shape-bubble {
+    animation: none;
+  }
+}
+
+/* ---------- staff home: calm and quick ---------- */
+
+.staff-greeting {
+  margin: 4px 0 2px;
+  color: var(--primary);
+}
+
+.staff-card {
+  margin-top: 16px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px;
 }
