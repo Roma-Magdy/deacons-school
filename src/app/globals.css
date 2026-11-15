@@ -1,0 +1,155 @@
+:root {
+  --bg: #fbf7ef;
+  --surface: #ffffff;
+  --text: #2b2118;
+  --muted: #7a6c5d;
+  --primary: #8a1c1c;
+  --primary-text: #ffffff;
+  --border: #e6dccb;
+  --error: #b42318;
+  --radius: 14px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #17120d;
+    --surface: #221b14;
+    --text: #f3eadc;
+    --muted: #b3a48f;
+    --primary: #d9534f;
+    --primary-text: #1a0f0f;
+    --border: #3a2f23;
+    --error: #ff8a80;
+    color-scheme: dark;
+  }
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html,
+body {
+  min-height: 100%;
+}
+
+body {
+  font-family: "Cairo Variable", system-ui, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1 {
+  font-size: 1.5rem;
+  line-height: 1.3;
+}
+
+.muted {
+  color: var(--muted);
+}
+
+.page {
+  width: 100%;
+  max-width: 640px;
+  margin-inline: auto;
+  padding: 16px;
+}
+
+.center-card {
+  width: 100%;
+  max-width: 420px;
+  margin: 12vh auto 0;
+  padding: 24px 16px;
+  display: grid;
+  gap: 8px;
+  text-align: center;
+}
+
+.topbar {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px;
+}
+
+.stars-card {
+  text-align: center;
+}
+
+.shape-big {
+  font-size: 4rem;
+  line-height: 1.2;
+}
+
+.total {
+  font-size: 3rem;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.form {
+  display: grid;
+  gap: 14px;
+  margin-top: 12px;
+  text-align: start;
+}
+
+.field {
+  display: grid;
+  gap: 6px;
+  font-weight: 600;
+}
+
+.field input {
+  font: inherit;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+  color: var(--text);
+  text-align: start;
+}
+
+.field input:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 1px;
+}
+
+.button {
+  font: inherit;
+  font-weight: 700;
+  padding: 12px 18px;
+  border: 0;
+  border-radius: 10px;
+  background: var(--primary);
+  color: var(--primary-text);
+  cursor: pointer;
+}
+
+.button:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+.button.secondary {
+  background: transparent;
+  color: var(--text);
+  border: 1px solid var(--border);
+}
+
+.error {
+  color: var(--error);
+  font-weight: 600;
+}
