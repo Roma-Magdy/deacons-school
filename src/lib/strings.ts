@@ -143,7 +143,7 @@ export const text = {
       line: (n: number) => `سطر ${arabicNumber(n)}`,
       importNow: (n: number) => `أضف ${arabicNumber(n)} حساب`,
       importing: (done: number, total: number) => `بضيف... ${arabicNumber(done)} من ${arabicNumber(total)}`,
-      doneTitle: "خلصنا ✅",
+      doneTitle: "خلصنا",
       doneCount: (n: number) => `اتضاف ${arabicNumber(n)} حساب`,
       skippedTitle: "ما اتضافوش",
       note: "كلمات السر دي بتظهر مرة واحدة بس. حمّل الملف أو انسخها دلوقتي قبل ما تقفل الصفحة.",

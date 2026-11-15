@@ -102,3 +102,15 @@ test("a header row without a name or phone column is rejected clearly", () => {
 test("empty input", () => {
   assert.deepEqual(parseUserRows("  \n \n", { role: "kid" }).rows, []);
 });
+
+test("Neon sslmode is made explicit without changing anything else", async () => {
+  const { explicitSsl } = await import("../src/lib/db-url.mjs");
+  assert.equal(
+    explicitSsl("postgresql://u:p%40ss@ep-x-pooler.eu-central-1.aws.neon.tech/db?sslmode=require&channel_binding=require"),
+    "postgresql://u:p%40ss@ep-x-pooler.eu-central-1.aws.neon.tech/db?sslmode=verify-full&channel_binding=require",
+  );
+  assert.equal(explicitSsl("postgresql://u:p@h/db?channel_binding=require&sslmode=require"), "postgresql://u:p@h/db?channel_binding=require&sslmode=verify-full");
+  assert.equal(explicitSsl("postgresql://u:p@h/db?sslmode=verify-full"), "postgresql://u:p@h/db?sslmode=verify-full");
+  assert.equal(explicitSsl("postgresql://postgres@localhost:5432/db"), "postgresql://postgres@localhost:5432/db");
+  assert.equal(explicitSsl(undefined), undefined);
+});

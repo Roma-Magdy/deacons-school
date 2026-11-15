@@ -4,6 +4,7 @@ import { readdir, readFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import pg from "pg";
+import { explicitSsl } from "../src/lib/db-url.mjs";
 
 const url = process.env.DATABASE_URL;
 if (!url) {
@@ -12,7 +13,7 @@ if (!url) {
 }
 
 const dir = path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "db", "migrations");
-const client = new pg.Client({ connectionString: url });
+const client = new pg.Client({ connectionString: explicitSsl(url) });
 await client.connect();
 
 try {

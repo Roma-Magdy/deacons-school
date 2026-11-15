@@ -3,6 +3,7 @@
 // Run with: npm run db:seed
 import bcrypt from "bcryptjs";
 import pg from "pg";
+import { explicitSsl } from "../src/lib/db-url.mjs";
 import { normalizePhone } from "../src/lib/phone.mjs";
 
 const { DATABASE_URL, SEED_ADMIN_PHONE, SEED_ADMIN_PASSWORD, SEED_ADMIN_NAME, SEED_ADMIN_GENDER } = process.env;
@@ -39,7 +40,7 @@ const shapes = [
   ["crown", "تاج", "👑", 150, 7],
 ];
 
-const client = new pg.Client({ connectionString: DATABASE_URL });
+const client = new pg.Client({ connectionString: explicitSsl(DATABASE_URL) });
 await client.connect();
 
 try {
