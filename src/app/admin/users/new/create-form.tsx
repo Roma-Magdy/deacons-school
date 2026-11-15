@@ -1,21 +1,22 @@
 "use client";
 
 import { useActionState, useState } from "react";
+import type { Branch } from "@/lib/branches";
 import { text, type Role } from "@/lib/strings";
 import Credentials from "../../_components/credentials";
 import { createUser, type CreateState } from "../actions";
 import UserFields from "../user-fields";
 
 const f = text.admin.form;
-const ROLES: Role[] = ["kid", "servant", "branch_leader", "admin"];
+const ROLES: Role[] = ["kid", "servant", "admin"];
 
-export default function CreateUserForm() {
+export default function CreateUserForm({ branches }: { branches: Branch[] }) {
   // Changing the key throws the form away, which is how "add another" starts from a clean form.
   const [round, setRound] = useState(0);
-  return <Inner key={round} onAnother={() => setRound((n) => n + 1)} />;
+  return <Inner key={round} branches={branches} onAnother={() => setRound((n) => n + 1)} />;
 }
 
-function Inner({ onAnother }: { onAnother: () => void }) {
+function Inner({ branches, onAnother }: { branches: Branch[]; onAnother: () => void }) {
   const [state, action, pending] = useActionState<CreateState, FormData>(createUser, {});
   const [role, setRole] = useState<Role>("kid");
 
@@ -46,7 +47,7 @@ function Inner({ onAnother }: { onAnother: () => void }) {
       </label>
 
       {/* Remounts when the account type changes so the grade and gender fields reset cleanly. */}
-      <UserFields key={role} role={role} defaults={state.values?.role === role ? state.values : undefined} />
+      <UserFields key={role} role={role} branches={branches} defaults={state.values?.role === role ? state.values : undefined} />
 
       <label className="field">
         <span>{f.password}</span>

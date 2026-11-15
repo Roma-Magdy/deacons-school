@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
+import type { Branch } from "@/lib/branches";
 import { text, type Gender, type Role } from "@/lib/strings";
 import {
   resetPassword,
@@ -14,7 +15,7 @@ import UserFields from "../user-fields";
 
 const f = text.admin.form;
 const ed = text.admin.edit;
-const STAFF_ROLES: Role[] = ["servant", "branch_leader", "admin"];
+const STAFF_ROLES: Role[] = ["servant", "admin"];
 
 type UserData = {
   id: number;
@@ -23,10 +24,11 @@ type UserData = {
   role: Role;
   gender: Gender | null;
   grade: number | null;
+  branch: number | null;
   isActive: boolean;
 };
 
-export function EditDetailsForm({ user, isSelf }: { user: UserData; isSelf: boolean }) {
+export function EditDetailsForm({ user, isSelf, branches }: { user: UserData; isSelf: boolean; branches: Branch[] }) {
   const [state, action, pending] = useActionState<EditState, FormData>(updateUser, {});
 
   return (
@@ -48,7 +50,8 @@ export function EditDetailsForm({ user, isSelf }: { user: UserData; isSelf: bool
 
       <UserFields
         role={user.role}
-        defaults={state.values ?? { name: user.name, phone: user.phone, gender: user.gender, grade: user.grade }}
+        branches={branches}
+        defaults={state.values ?? { name: user.name, phone: user.phone, gender: user.gender, grade: user.grade, branch: user.branch }}
       />
 
       {state.error && (

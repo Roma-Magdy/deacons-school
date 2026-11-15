@@ -12,7 +12,7 @@ export const metadata = { title: text.admin.users.title };
 type SearchParams = Promise<{ [key: string]: string | string[] | undefined }>;
 
 const t = text.admin.users;
-const ROLES: Role[] = ["kid", "servant", "branch_leader", "admin"];
+const ROLES: Role[] = ["kid", "servant", "admin"];
 const LIMIT = 500;
 
 function first(v: string | string[] | undefined): string {

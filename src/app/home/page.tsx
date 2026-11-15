@@ -5,6 +5,7 @@ import { db } from "@/lib/db";
 import { requireUser, type CurrentUser } from "@/lib/auth";
 import { arabicNumber, gradeLabel, greeting, roleLabel, text } from "@/lib/strings";
 import { logout } from "../actions";
+import StarChart from "./star-chart";
 
 export const metadata = { title: text.home.pageTitle };
 
@@ -20,7 +21,7 @@ function ShapeGlyph({ shape, size }: { shape: ShapeRow | undefined; size: number
 }
 
 async function KidHome({ user }: { user: CurrentUser }) {
-  const [{ rows: totals }, { rows: shapes }] = await Promise.all([
+  const [{ rows: totals }, { rows: shapes }, { rows: chartRows }] = await Promise.all([
     db.query(
       "select coalesce(sum(amount), 0)::int as total from star_awards where kid_id = $1 and voided_at is null",
       [user.id],
@@ -31,7 +32,18 @@ async function KidHome({ user }: { user: CurrentUser }) {
         where id = coalesce($1::bigint, (select id from shapes where stars_required = 0 order by sort_order limit 1))`,
       [user.shapeId],
     ),
+    // Stars per reason for the chart: every active reason gets a column, even with 0 stars.
+    db.query(
+      `select r.id, r.name_ar, coalesce(sum(sa.amount), 0)::int as total
+         from reasons r
+         left join star_awards sa on sa.reason_id = r.id and sa.kid_id = $1 and sa.voided_at is null
+        where r.is_active
+        group by r.id, r.name_ar, r.sort_order
+        order by r.sort_order, r.id`,
+      [user.id],
+    ),
   ]);
+  const columns = chartRows.map((r) => ({ id: Number(r.id), name: r.name_ar as string, total: r.total as number }));
   const total: number = totals[0].total;
   const shape: ShapeRow | undefined = shapes[0];
 
@@ -68,6 +80,8 @@ async function KidHome({ user }: { user: CurrentUser }) {
         </p>
       )}
 
+      <StarChart columns={columns} />
+
       <p className="kid-soon">{text.home.kidSoon}</p>
     </section>
   );
@@ -84,9 +98,10 @@ function StaffHome({ user }: { user: CurrentUser }) {
           <span className="muted">{text.admin.homeHint}</span>
         </Link>
       )}
-      <div className="staff-card">
-        <p>{text.home.staffSoon}</p>
-      </div>
+      <Link href="/stars" className="staff-card admin-link">
+        <strong>{text.stars.homeLink}</strong>
+        <span className="muted">{text.stars.homeHint}</span>
+      </Link>
     </section>
   );
 }

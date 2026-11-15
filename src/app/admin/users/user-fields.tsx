@@ -1,13 +1,14 @@
 "use client";
 
+import type { Branch } from "@/lib/branches";
 import { gradeLabel, text, type Role } from "@/lib/strings";
 
 const f = text.admin.form;
 
-type Defaults = { name?: string; phone?: string; gender?: string | null; grade?: number | string | null };
+type Defaults = { name?: string; phone?: string; gender?: string | null; grade?: number | string | null; branch?: number | string | null };
 
 /** The fields shared by the "add" and "edit" forms. Kids get a grade; the gender labels fit who is being added. */
-export default function UserFields({ role, defaults = {} }: { role: Role; defaults?: Defaults }) {
+export default function UserFields({ role, branches = [], defaults = {} }: { role: Role; branches?: Branch[]; defaults?: Defaults }) {
   const isKid = role === "kid";
 
   return (
@@ -58,6 +59,21 @@ export default function UserFields({ role, defaults = {} }: { role: Role; defaul
               </option>
             ))}
           </select>
+        </label>
+      )}
+
+      {!isKid && (
+        <label className="field">
+          <span>{f.branch}</span>
+          <select key={`branch-${defaults.branch ?? ""}`} name="branch" defaultValue={defaults.branch ? String(defaults.branch) : ""}>
+            <option value="">{f.noBranch}</option>
+            {branches.map((b) => (
+              <option key={b.id} value={b.id}>
+                {b.name}
+              </option>
+            ))}
+          </select>
+          <small className="muted">{f.branchHint}</small>
         </label>
       )}
     </>

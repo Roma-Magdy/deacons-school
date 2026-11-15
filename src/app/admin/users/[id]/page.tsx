@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { requireAdmin } from "@/lib/auth";
+import { listBranches } from "@/lib/branches";
 import { db } from "@/lib/db";
 import { toLocalPhone } from "@/lib/phone.mjs";
 import { text, type Gender, type Role } from "@/lib/strings";
@@ -26,7 +27,7 @@ async function EditUserContent({ params }: { params: Params }) {
   if (!Number.isInteger(id)) notFound();
 
   const { rows } = await db.query(
-    "select id, full_name, phone, role, grade, gender, is_active from users where id = $1",
+    "select id, full_name, phone, role, grade, gender, branch_id, is_active from users where id = $1",
     [id],
   );
   const row = rows[0];
@@ -39,16 +40,18 @@ async function EditUserContent({ params }: { params: Params }) {
     role: row.role as Role,
     gender: row.gender as Gender | null,
     grade: row.grade as number | null,
+    branch: row.branch_id === null ? null : Number(row.branch_id),
     isActive: row.is_active as boolean,
   };
   const isSelf = user.id === admin.id;
+  const branches = await listBranches();
 
   return (
     <main className="page">
       <AdminHeader backHref="/admin/users" backLabel={text.admin.backToUsers} />
       <h1 className="page-title-single">{text.admin.edit.title}</h1>
       <div className="stack">
-        <EditDetailsForm user={user} isSelf={isSelf} />
+        <EditDetailsForm user={user} isSelf={isSelf} branches={branches} />
         <ResetPasswordForm id={user.id} />
         <ActiveForm id={user.id} isActive={user.isActive} isSelf={isSelf} />
       </div>

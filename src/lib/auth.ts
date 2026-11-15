@@ -56,6 +56,13 @@ export async function requireAdmin(): Promise<CurrentUser> {
   return user;
 }
 
+/** For staff-only pages and actions (servants and admins). Call this inside every staff server action too. */
+export async function requireStaff(): Promise<CurrentUser> {
+  const user = await requireUser();
+  if (!isStaff(user.role)) redirect("/home");
+  return user;
+}
+
 export function isStaff(role: Role) {
-  return role === "servant" || role === "branch_leader" || role === "admin";
+  return role === "servant" || role === "admin";
 }

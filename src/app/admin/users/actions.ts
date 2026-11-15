@@ -17,20 +17,30 @@ export type Credential = { name: string; phone: string; password: string };
 // ---------- add one ----------
 
 /** What was typed in the form. Returned with errors so the form keeps the admin's input (React clears forms after an action). */
-export type FormValues = { name: string; phone: string; gender: string; grade: string; role: string; password: string };
+export type FormValues = { name: string; phone: string; gender: string; grade: string; role: string; password: string; branch: string };
 
 function submittedValues(formData: FormData): FormValues {
   const get = (key: string) => String(formData.get(key) ?? "");
-  return { name: get("name"), phone: get("phone"), gender: get("gender"), grade: get("grade"), role: get("role"), password: get("password") };
+  return { name: get("name"), phone: get("phone"), gender: get("gender"), grade: get("grade"), role: get("role"), password: get("password"), branch: get("branch") };
 }
 
 export type CreateState = { error?: string; created?: Credential; values?: FormValues };
 
-const STAFF_ROLES = ["servant", "branch_leader", "admin"] as const;
+const STAFF_ROLES = ["servant", "admin"] as const;
 const ALL_ROLES = ["kid", ...STAFF_ROLES] as const;
 
 function isUniqueViolation(err: unknown) {
   return typeof err === "object" && err !== null && (err as { code?: string }).code === "23505";
+}
+
+/** The home branch picked in the form. Only servants and admins have one; it is optional and never limits awarding stars. */
+async function readBranch(formData: FormData, role: string): Promise<{ ok: true; id: number | null } | { ok: false }> {
+  const raw = String(formData.get("branch") ?? "").trim();
+  if (role === "kid" || raw === "") return { ok: true, id: null };
+  const id = Number(raw);
+  if (!Number.isInteger(id)) return { ok: false };
+  const { rowCount } = await db.query("select 1 from branches where id = $1 and is_active", [id]);
+  return rowCount ? { ok: true, id } : { ok: false };
 }
 
 async function nameOfPhoneOwner(phone: string): Promise<string> {
@@ -54,15 +64,18 @@ export async function createUser(_prev: CreateState, formData: FormData): Promis
   });
   if (!v.ok) return { error: v.errors.join("، "), values };
 
+  const branch = await readBranch(formData, role);
+  if (!branch.ok) return { error: e.badBranch, values };
+
   const custom = String(formData.get("password") ?? "").trim();
   if (custom && custom.length < MIN_PASSWORD_LENGTH) return { error: e.shortPassword, values };
   const password = custom || generatePassword(role === "kid" ? "kid" : "staff");
 
   try {
     await db.query(
-      `insert into users (phone, password_hash, full_name, role, grade, gender)
-       values ($1, $2, $3, $4, $5, $6)`,
-      [v.value.phone, await hashPassword(password), v.value.name, role, v.value.grade, v.value.gender],
+      `insert into users (phone, password_hash, full_name, role, grade, gender, branch_id)
+       values ($1, $2, $3, $4, $5, $6, $7)`,
+      [v.value.phone, await hashPassword(password), v.value.name, role, v.value.grade, v.value.gender, branch.id],
     );
   } catch (err) {
     if (isUniqueViolation(err)) return { error: e.phoneTaken(await nameOfPhoneOwner(v.value.phone)), values };
@@ -86,7 +99,7 @@ export async function updateUser(_prev: EditState, formData: FormData): Promise<
   const target = rows[0];
   if (!target) return { error: text.admin.edit.notFound };
 
-  // Kids stay kids; servants, branch leaders and admins can be switched between those three roles.
+  // Kids stay kids; servants and admins can be switched between those two roles.
   let role: string = target.role;
   if (target.role !== "kid") {
     role = String(formData.get("role") ?? target.role);
@@ -103,10 +116,13 @@ export async function updateUser(_prev: EditState, formData: FormData): Promise<
   });
   if (!v.ok) return { error: v.errors.join("، "), values };
 
+  const branch = await readBranch(formData, role);
+  if (!branch.ok) return { error: e.badBranch, values };
+
   try {
     await db.query(
-      `update users set full_name = $2, phone = $3, gender = $4, grade = $5, role = $6 where id = $1`,
-      [id, v.value.name, v.value.phone, v.value.gender, v.value.grade, role],
+      `update users set full_name = $2, phone = $3, gender = $4, grade = $5, role = $6, branch_id = $7 where id = $1`,
+      [id, v.value.name, v.value.phone, v.value.gender, v.value.grade, role, branch.id],
     );
   } catch (err) {
     if (isUniqueViolation(err)) return { error: e.phoneTaken(await nameOfPhoneOwner(v.value.phone)), values };
