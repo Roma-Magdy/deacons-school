@@ -43,7 +43,7 @@ create table users (
   phone            text not null unique,           -- normalized, e.g. +201012345678
   password_hash    text not null,
   full_name        text not null,
-  role             text not null check (role in ('kid', 'servant', 'branch_leader', 'admin')),
+  role             text not null check (role in ('kid', 'servant', 'admin')),
   grade            smallint check (grade between 3 and 6),
   shape_id         bigint references shapes (id),
   is_active        boolean not null default true,

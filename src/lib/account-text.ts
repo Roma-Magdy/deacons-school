@@ -1,0 +1,27 @@
+// Text for the "change my password" screen (kept in its own file so it can be dropped in without touching strings.ts).
+export const accountText = {
+  headerLink: "كلمة السر",
+  title: "غير كلمة السر",
+  welcomeTitle: "أهلاً بيك! اختار كلمة السر بتاعتك",
+  welcomeIntro: "كلمة السر الحالية اتعملت ليك أول مرة. تقدر تغيرها دلوقتي لحاجة تحفظها بسهولة، أو تسيبها وتغيرها في أي وقت.",
+  intro: "اكتب كلمة السر الحالية وبعدين الجديدة.",
+  current: "كلمة السر الحالية",
+  next: "كلمة السر الجديدة",
+  nextHint: "٦ حروف أو أرقام على الأقل",
+  confirm: "اكتب الجديدة تاني",
+  submit: "غير كلمة السر",
+  submitting: "ثواني...",
+  skip: "بعدين",
+  back: "← الرئيسية",
+  done: "تمام، كلمة السر اتغيرت",
+  continue: "كمل",
+  errors: {
+    missing: "اكتب كل الخانات",
+    short: "كلمة السر الجديدة قصيرة، ٦ حروف أو أرقام على الأقل",
+    long: "كلمة السر الجديدة طويلة قوي (٦٤ حرف بالكتير)",
+    mismatch: "كلمتين السر الجداد مش زي بعض",
+    same: "كلمة السر الجديدة لازم تكون مختلفة عن الحالية",
+    wrongCurrent: "كلمة السر الحالية مش مظبوطة",
+    generic: "حصلت مشكلة، جرب تاني",
+  },
+};

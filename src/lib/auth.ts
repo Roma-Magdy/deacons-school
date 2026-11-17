@@ -16,6 +16,8 @@ export type CurrentUser = {
   grade: number | null;
   shapeId: number | null;
   gender: Gender | null;
+  /** True until the user has seen (and changed or skipped) the "choose your own password" screen. */
+  passwordPrompt: boolean;
 };
 
 /** The logged-in user, re-read from the database on every request so deactivation and role changes apply immediately. */
@@ -24,7 +26,7 @@ export const getCurrentUser = cache(async (): Promise<CurrentUser | null> => {
   if (id === null) return null;
 
   const { rows } = await db.query(
-    `select id, full_name, phone, role, grade, shape_id, gender
+    `select id, full_name, phone, role, grade, shape_id, gender, password_prompt
        from users
       where id = $1 and is_active`,
     [id],
@@ -40,6 +42,7 @@ export const getCurrentUser = cache(async (): Promise<CurrentUser | null> => {
     grade: row.grade,
     shapeId: row.shape_id === null ? null : Number(row.shape_id),
     gender: row.gender,
+    passwordPrompt: row.password_prompt,
   };
 });
 

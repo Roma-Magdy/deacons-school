@@ -2,6 +2,7 @@
 // Safe to run more than once: existing rows are left alone.
 // Run with: npm run db:seed
 import bcrypt from "bcryptjs";
+import { BCRYPT_COST } from "../src/lib/bcrypt-cost.mjs";
 import pg from "pg";
 import { explicitSsl } from "../src/lib/db-url.mjs";
 import { normalizePhone } from "../src/lib/phone.mjs";
@@ -12,11 +13,12 @@ if (!DATABASE_URL) {
   process.exit(1);
 }
 
+// Same names and order that migration 003 gives an older database, so a fresh database ends up identical.
 const branches = [
-  ["liturgical", "الطقس", 1],
-  ["coptic", "القبطي", 2],
-  ["archives", "الأرشيف", 3],
-  ["chants", "الألحان", 4],
+  ["chants", "الألحان", 1],
+  ["liturgical", "الطقس", 2],
+  ["memorization", "المحفوظات", 3],
+  ["coptic", "القبطي", 4],
 ];
 
 // [slug, name, is_competition, sort]
@@ -88,7 +90,7 @@ try {
 
     const exists = await client.query("select id, gender from users where phone = $1", [phone]);
     if (exists.rowCount === 0) {
-      const hash = await bcrypt.hash(SEED_ADMIN_PASSWORD, 12);
+      const hash = await bcrypt.hash(SEED_ADMIN_PASSWORD, BCRYPT_COST);
       await client.query(
         "insert into users (phone, password_hash, full_name, role, gender) values ($1, $2, $3, 'admin', $4)",
         [phone, hash, SEED_ADMIN_NAME || "المدير", gender],

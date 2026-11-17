@@ -2,7 +2,9 @@
 
 import bcrypt from "bcryptjs";
 import { redirect } from "next/navigation";
+import { BCRYPT_COST } from "@/lib/bcrypt-cost.mjs";
 import { db } from "@/lib/db";
+import { hashPassword } from "@/lib/passwords";
 import { normalizePhone } from "@/lib/phone.mjs";
 import { createSession } from "@/lib/session";
 import { text } from "@/lib/strings";
@@ -15,7 +17,7 @@ const LOCK_MINUTES = 15;
 // Compared against when the phone number is unknown, so response time doesn't reveal which numbers have accounts.
 let dummyHash: string | undefined;
 function getDummyHash() {
-  dummyHash ??= bcrypt.hashSync("not-a-real-password", 12);
+  dummyHash ??= bcrypt.hashSync("not-a-real-password", BCRYPT_COST);
   return dummyHash;
 }
 
@@ -58,6 +60,10 @@ export async function login(_prev: LoginState, formData: FormData): Promise<Logi
   }
 
   await db.query("update users set failed_attempts = 0, locked_until = null where id = $1", [user.id]);
+  // Hashes made with an older, different cost (the seeded admin used 12) are quietly redone at the current cost, now that the password is known.
+  if (bcrypt.getRounds(user.password_hash) !== BCRYPT_COST) {
+    await db.query("update users set password_hash = $2 where id = $1", [user.id, await hashPassword(password)]);
+  }
   await createSession(Number(user.id));
   redirect("/home");
 }

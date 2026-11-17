@@ -1,6 +1,7 @@
 import "server-only";
 import { randomInt } from "node:crypto";
 import bcrypt from "bcryptjs";
+import { BCRYPT_COST } from "./bcrypt-cost.mjs";
 
 // Without look-alike characters (0/O, 1/l/I) so passwords read out or typed from WhatsApp don't get mixed up.
 const STAFF_ALPHABET = "abcdefghjkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789";
@@ -18,7 +19,6 @@ export function generatePassword(kind: "kid" | "staff"): string {
 
 export const MIN_PASSWORD_LENGTH = 6;
 
-/** Cost 10 keeps importing a few hundred accounts fast enough for a serverless function. */
 export function hashPassword(password: string): Promise<string> {
-  return bcrypt.hash(password, 10);
+  return bcrypt.hash(password, BCRYPT_COST);
 }

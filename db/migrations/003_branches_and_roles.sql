@@ -16,7 +16,6 @@ end $$;
 
 alter table users add constraint users_role_check check (role in ('kid', 'servant', 'admin'));
 
--- 2. Branches: الألحان، الطقس، المحفوظات، القبطي (the old "الأرشيف" branch becomes المحفوظات).
 update branches set slug = 'memorization' where slug = 'archives';
 update branches set name_ar = 'الألحان',    sort_order = 1 where slug = 'chants';
 update branches set name_ar = 'الطقس',      sort_order = 2 where slug = 'liturgical';

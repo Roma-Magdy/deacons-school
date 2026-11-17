@@ -1,6 +1,7 @@
 import { arabicNumber, text } from "@/lib/strings";
 
 export type ChartColumn = { id: number; name: string; total: number };
+export type ChartShape = { emoji: string | null; imageUrl: string | null };
 
 // One color per column, like the rainbow poster in the classroom. Colors repeat if there are more than 7 reasons.
 const COLORS = ["#ef4444", "#f97316", "#eab308", "#22c55e", "#3b82f6", "#a855f7", "#ec4899"];
@@ -22,9 +23,27 @@ function Star({ color, delay }: { color: string; delay: number }) {
   );
 }
 
-/** "I can..." chart: one row for the kid, one column per reason, a colored star for every star earned. */
-export default function StarChart({ columns }: { columns: ChartColumn[] }) {
+/** One earned star drawn as the kid's chosen shape: a picture, or the emoji on a chip in the column's color. */
+function ShapeMark({ shape, delay }: { shape: ChartShape; delay: number }) {
+  return (
+    <span className="chart-shape" aria-hidden="true" style={{ animationDelay: `${delay}ms` }}>
+      {shape.imageUrl ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={shape.imageUrl} alt="" width={22} height={22} />
+      ) : (
+        shape.emoji
+      )}
+    </span>
+  );
+}
+
+/**
+ * "I can..." chart: one row for the kid, one column per reason, one mark for every star earned.
+ * The mark is the kid's chosen shape. With no shape yet, or the plain star shape, the colored star is drawn.
+ */
+export default function StarChart({ columns, shape }: { columns: ChartColumn[]; shape: ChartShape | null }) {
   if (columns.length === 0) return null;
+  const plainStar = !shape || (!shape.imageUrl && (!shape.emoji || shape.emoji === "⭐"));
 
   return (
     <section className="chart" aria-label={text.home.chartTitle}>
@@ -51,9 +70,9 @@ export default function StarChart({ columns }: { columns: ChartColumn[] }) {
                 return (
                   <td key={c.id} className="chart-cell" style={{ "--c": color } as React.CSSProperties}>
                     <div className="chart-stars" role="img" aria-label={`${c.name}: ${arabicNumber(c.total)}`}>
-                      {Array.from({ length: shown }, (_, k) => (
-                        <Star key={k} color={color} delay={k * 60} />
-                      ))}
+                      {Array.from({ length: shown }, (_, k) =>
+                        plainStar || !shape ? <Star key={k} color={color} delay={k * 60} /> : <ShapeMark key={k} shape={shape} delay={k * 60} />,
+                      )}
                       {extra > 0 && <span className="chart-more">+{arabicNumber(extra)}</span>}
                     </div>
                   </td>

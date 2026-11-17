@@ -101,6 +101,12 @@ h1 {
   padding: 12px 0;
 }
 
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .brand {
   display: flex;
   align-items: center;
@@ -212,6 +218,27 @@ h1 {
   font-size: 0.95rem;
 }
 
+.button.danger {
+  background: var(--error);
+  color: #fff;
+}
+
+.button.danger:hover {
+  background: var(--error);
+  filter: brightness(0.92);
+}
+
+.button.danger-outline {
+  background: transparent;
+  color: var(--error);
+  border: 2px solid var(--error);
+  box-shadow: none;
+}
+
+.staff-card.danger-zone {
+  border-color: var(--error);
+}
+
 .error {
   color: var(--error);
   background: var(--error-bg);
@@ -271,6 +298,42 @@ h1 {
   font-size: 5.5rem;
   line-height: 1;
   animation: bob 2.8s ease-in-out infinite;
+}
+
+/* The circle is a link: tap it to change the shape. */
+a.shape-bubble {
+  position: relative;
+  color: inherit;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+a.shape-bubble:focus-visible {
+  outline: 4px solid #3b82f6;
+  outline-offset: 4px;
+}
+
+.shape-bubble-badge {
+  position: absolute;
+  bottom: 2px;
+  inset-inline-end: 2px;
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: #fff;
+  border: 3px solid #3b82f6;
+  box-shadow: 0 3px 0 rgba(0, 0, 0, 0.15);
+  font-size: 1.4rem;
+  line-height: 1;
+}
+
+.kid-hint {
+  margin: 4px 0 0;
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--muted);
 }
 
 .shape-bubble img {
@@ -390,6 +453,26 @@ h1 {
   animation: pop 0.45s ease-out both;
 }
 
+/* The kid's chosen shape in a chart cell: an emoji can't take a color, so it sits on a chip in the column's color. */
+.chart-shape {
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--c) 35%, var(--surface));
+  border: 2px solid var(--c);
+  font-size: 1.1rem;
+  line-height: 1;
+  animation: pop 0.45s ease-out both;
+}
+
+.chart-shape img {
+  width: 22px;
+  height: 22px;
+  object-fit: contain;
+}
+
 .chart-more {
   padding: 0 7px;
   border-radius: 999px;
@@ -413,6 +496,7 @@ h1 {
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .chart-shape,
   .chart-star {
     animation: none;
   }
@@ -737,6 +821,71 @@ a.button {
   margin-top: 8px;
 }
 
+/* Links that look like the chips (leaderboard filters). */
+a.chip {
+  display: inline-flex;
+  align-items: center;
+  text-decoration: none;
+}
+
+.chip[aria-current="true"] {
+  background: var(--gold);
+  border-color: var(--gold);
+  color: #3a2418;
+}
+
+/* ---------- leaderboards ---------- */
+
+.board-list {
+  margin-top: 14px;
+}
+
+.board-row {
+  align-items: center;
+  gap: 10px;
+}
+
+.board-row.is-me {
+  background: var(--gold-soft);
+  border-color: var(--gold);
+}
+
+.board-place {
+  flex: none;
+  min-width: 2.2em;
+  text-align: center;
+  font-size: 1.3rem;
+  font-weight: 800;
+}
+
+.board-glyph {
+  flex: none;
+  font-size: 1.6rem;
+  line-height: 1;
+}
+
+.board-glyph img {
+  object-fit: contain;
+}
+
+.board-gap {
+  list-style: none;
+  text-align: center;
+  color: var(--muted);
+}
+
+.kid-rank {
+  display: inline-block;
+  margin-top: 18px;
+  padding: 10px 20px;
+  border-radius: 999px;
+  background: var(--gold-soft);
+  border: 2px solid var(--gold);
+  color: var(--text);
+  font-weight: 800;
+  text-decoration: none;
+}
+
 .stars-search {
   margin-top: 12px;
 }
@@ -930,11 +1079,351 @@ a.button {
 
 .recent-item {
   display: flex;
-  align-items: center;
+  flex-wrap: wrap;
+  align-items: flex-start;
   justify-content: space-between;
   gap: 12px;
   padding: 10px 14px;
   border: 1px solid var(--border);
   border-radius: 12px;
   background: var(--surface);
+}
+
+.recent-main {
+  display: grid;
+  gap: 4px;
+  flex: 1;
+  min-width: 0;
+}
+
+.recent-actions {
+  display: grid;
+  gap: 6px;
+  justify-items: end;
+}
+
+.recent-match {
+  font-weight: 700;
+  color: var(--primary);
+}
+
+.recent-names {
+  list-style: none;
+  display: grid;
+  margin-top: 4px;
+}
+
+.recent-names li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 0;
+  border-top: 1px solid var(--border);
+}
+
+.recent-names li[data-match="true"] strong {
+  color: var(--primary);
+}
+
+.recent-confirm {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.button.small {
+  min-height: 36px;
+  padding: 4px 14px;
+  font-size: 0.9rem;
+}
+
+/* ---------- accounts list: tabs, checkboxes, bulk bar ---------- */
+
+.user-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.user-item .user-row {
+  flex: 1;
+  min-width: 0;
+}
+
+.row-check,
+.check-line input {
+  width: 22px;
+  height: 22px;
+  flex: none;
+  accent-color: var(--gold);
+}
+
+.row-check {
+  cursor: pointer;
+}
+
+.bulk-bar {
+  margin-top: 16px;
+}
+
+.bulk-move {
+  display: flex;
+  gap: 8px;
+}
+
+.bulk-move select {
+  flex: 1;
+  min-width: 0;
+  font: inherit;
+  padding: 10px 12px;
+  border: 2px solid var(--border);
+  border-radius: 12px;
+  background: var(--bg);
+  color: var(--text);
+}
+
+.bulk-move select:disabled {
+  opacity: 0.5;
+}
+
+/* ---------- yearly promotion and archive ---------- */
+
+.promo-preview {
+  list-style: none;
+  display: grid;
+  gap: 6px;
+  font-weight: 700;
+}
+
+.promo-grade {
+  display: grid;
+  gap: 8px;
+}
+
+.promo-kids {
+  list-style: none;
+  display: grid;
+  gap: 4px;
+  max-height: 320px;
+  overflow-y: auto;
+  padding: 6px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+
+.check-line {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 8px;
+  cursor: pointer;
+}
+
+.archive-actions {
+  margin-top: 16px;
+}
+
+/* ---------- terms ---------- */
+
+.term-card {
+  display: grid;
+  gap: 8px;
+  margin-top: 0;
+}
+
+.term-card.active-term {
+  border: 2px solid var(--gold);
+}
+
+.term-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.term-dates {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+/* ---------- kid: shape picker and star history ---------- */
+
+.kid-links {
+  display: grid;
+  gap: 10px;
+  margin: 18px auto 0;
+  max-width: 360px;
+}
+
+.shape-grid {
+  list-style: none;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.shape-card {
+  position: relative;
+  width: 100%;
+  display: grid;
+  justify-items: center;
+  gap: 4px;
+  padding: 16px 10px;
+  font: inherit;
+  color: var(--text);
+  background: var(--surface);
+  border: 2px solid var(--border);
+  border-radius: 18px;
+  cursor: pointer;
+}
+
+.shape-card[aria-pressed="true"] {
+  border-color: var(--gold);
+  background: var(--gold-soft);
+}
+
+.shape-card[data-locked="true"] {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.shape-card[data-locked="true"] .shape-card-glyph {
+  filter: grayscale(1);
+}
+
+.shape-card-glyph {
+  font-size: 3.2rem;
+  line-height: 1.2;
+}
+
+.shape-card-glyph img {
+  object-fit: contain;
+}
+
+.shape-card-note {
+  font-size: 0.85rem;
+}
+
+.shape-lock {
+  position: absolute;
+  top: 8px;
+  inset-inline-start: 10px;
+}
+
+/* ---------- admin: award history ---------- */
+
+.awards-filter {
+  display: grid;
+  gap: 10px;
+}
+
+.awards-check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.award-row {
+  align-items: flex-start;
+}
+
+.award-row.is-voided {
+  opacity: 0.6;
+}
+
+.award-row.is-voided .history-amount {
+  text-decoration: line-through;
+  color: var(--muted);
+}
+
+.award-side {
+  display: grid;
+  justify-items: end;
+  gap: 6px;
+}
+
+.award-confirm {
+  display: grid;
+  gap: 6px;
+  justify-items: end;
+}
+
+.award-btn {
+  min-height: 40px;
+  padding: 4px 14px;
+  font-size: 0.95rem;
+}
+
+.awards-pages {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 14px;
+}
+
+/* ---------- admin: shapes ---------- */
+
+.shape-admin-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.shape-admin-glyph {
+  flex: none;
+  width: 56px;
+  height: 56px;
+  display: grid;
+  place-items: center;
+  font-size: 2.2rem;
+  line-height: 1;
+}
+
+.shape-admin-glyph img {
+  object-fit: contain;
+}
+
+.shape-admin-card.is-hidden {
+  opacity: 0.7;
+}
+
+/* Every button in a shape card has the same shape and height, including the picture label. */
+.shape-admin-card .actions .button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 6px 16px;
+  font-size: 0.95rem;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.file-button {
+  cursor: pointer;
+}
+
+.history-row {
+  align-items: center;
+}
+
+.history-amount {
+  font-size: 1.3rem;
+  font-weight: 800;
+  color: #16a34a;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
 }

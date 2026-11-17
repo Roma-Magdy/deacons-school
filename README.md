@@ -1,84 +1,119 @@
-# مدرسة الشمامسة — Deacons School
+# Deacons School Stars App (برنامج نجوم مدرسة الشمامسة)
 
-Arabic web app where kids in grades 3–6 earn stars (shown as a shape they choose) for attending, competitions and good behavior. Servants add stars; leaderboards show rankings per grade and per branch.
+A small web app for the deacons school: servants give kids stars for attendance, behaviour and competitions, and kids see their stars, their chosen shape, their star history and a leaderboard. The whole interface is in Arabic (RTL).
 
-Stack: Next.js (App Router) · Postgres (Neon) · Vercel.
+**Stack:** Next.js (React) on Vercel, Postgres on Neon, login by phone number and password (hashed, kept in a signed cookie).
 
-## Status
+## What the app does
 
-Steps 1 and 2 of the build plan are done:
+**Kids**
+- Home: the chosen shape (tap the circle with 🎨 to change it), total stars, the next shape to unlock, the colored star chart, and the place in their grade this term.
+- Shape picker: free shapes, unlocked shapes, and locked ones greyed out with "X stars to go". A shape, once unlocked, stays unlocked even if a star is cancelled later.
+- Star history: every star received, with the reason and date. Servant names and notes are never shown to kids.
+- Leaderboard: this term only, within the kid's own grade. Tabs: all stars, then one tab per reason. The competition tab has a second row: all branches, or one branch. Ties share a place. Only first and second name show, never phone numbers.
 
-- Arabic / right-to-left layout with the Cairo font, in light Egyptian Arabic
-- School logo and a theme built from its colors (light and dark mode); playful kid home page, calmer servant home page
-- Greetings by role and gender (شماسنا الشاطر / تاسونتنا الشاطرة / يا باسون / يا تاسوني)
-- Database schema (users, terms, branches, reasons, shapes, star awards)
-- Phone number + password login (lockout for 15 minutes after 5 wrong passwords)
-- A placeholder home page for kids (shows their star total) and for servants/admins
-- Admin screens (admins only) at `/admin/users`: list with search and filters, add one account, edit, new password (also clears a lockout), stop/restart an account, and import from Excel
+**Servants**
+- Add stars: pick a grade, tap kids (or search), choose the reason and amount, choose the branch for competitions. Several kids at once. Recent awards with undo.
+- Leaderboard for any grade.
 
-Next: the servant "add stars" screen.
+**Admin** (everything above, plus)
+- Kids and servants: add, edit, reset password, deactivate, delete, Excel/CSV import, grade tabs, search, bulk move, yearly promotion (with undo) and the graduates archive.
+- Terms: add, edit, activate (only one is active), delete an empty one.
+- Reasons: add, rename, hide/show, reorder, delete an unused one. The competition reason can't be hidden or deleted, and the last visible reason can't be removed.
+- Shapes: add, edit, hide/show, delete an unused one, upload artwork (PNG/JPG/WebP, shrunk automatically; SVG is refused). Stars needed: 0 means free for everyone.
+- Award history (سجل النجوم): every award, with filters (term, reason, grade, name), and a void button on any row. A voided award stays in the history, greyed out, and stops counting everywhere.
 
-## Adding kids and servants (admins)
+**Passwords**
+- A new account (or one the admin just reset) sees a "choose your own password" screen once after login. It can be skipped.
+- Everyone has a "كلمة السر" button on the home page to change their password at any time.
 
-Log in as admin and open «إدارة الحسابات» on the home page.
+## Rules worth knowing
+- Stars are a ledger: totals are always calculated from the awards, never stored as a counter. Fixing a mistake means voiding the award.
+- Stars always belong to the active term. Without an active term nobody can give stars (the admin must activate one in "الترمات").
+- Branches (الألحان، الطقس، المحفوظات، القبطي) are fixed and have no admin screen.
+- Servants can give stars to any kid. There is no time limit on a servant's undo for their own recent awards.
 
-- **Add one:** pick the account type, fill in the details. Leave the password empty to get a generated one (6 digits for kids, 8 characters for servants). It is shown **once**, so send it to the family right away.
-- **Import from Excel:** select the columns in Excel, copy, and paste into the import page (or save as CSV and choose the file). Column order without a header row: name, mobile, grade, gender for kids; name, mobile, gender for servants. With a header row (الاسم، الموبايل، الصف، النوع) the columns can be in any order. Rows with problems are listed with their line number and skipped; the rest are added. Download the result file with the generated passwords before closing the page.
-- **Rules:** a mobile number can belong to only one account; kids need first and second name, a grade (3-6) and a gender (the gender picks the greeting wording).
-- Accounts are never deleted, only stopped, because star history refers to them.
-- Passwords are stored hashed. Nobody, including admins, can read an existing password; use «كلمة سر جديدة» instead.
+## Project layout
+- `src/app/...` pages and server actions (`admin/`, `stars/`, `home/`, `shapes/`, `history/`, `leaderboard/`, `password/`, `login/`)
+- `src/lib/...` shared code (database, session, validation, ranking). Files ending in `.mjs` are plain JavaScript so they can be unit-tested.
+- `db/migrations/*.sql` database changes, applied in order, once each
+- `scripts/seed.mjs` creates the starting data and the first admin
+- `scripts/migrate.mjs` applies the migrations
+- `tests/*.test.mjs` unit tests
+
+## Environment variables
+
+| Name | Needed where | What it is |
+|---|---|---|
+| `DATABASE_URL` | Vercel, and your computer when running migrate/seed | Neon connection string. On Vercel use the **pooled** one (the host contains `-pooler`). |
+| `SESSION_SECRET` | Vercel, and your computer for local runs | A random string of **at least 32 characters**. Keep it secret. Changing it logs everybody out. |
+| `SEED_ADMIN_PHONE` | Only when running the seed | Phone number of the first admin (e.g. `01012345678`). |
+| `SEED_ADMIN_PASSWORD` | Only when running the seed | The first admin's starting password. |
+| `SEED_ADMIN_NAME` | Only when running the seed (optional) | The admin's name. Defaults to "المدير". |
+| `SEED_ADMIN_GENDER` | Only when running the seed (optional) | The admin's gender (`male` or `female`), used for the greeting. |
+
+Make a random secret with: `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`
+
+For local work put the variables in a `.env.local` file (never commit it). If a command doesn't pick them up, set them in the terminal before running it.
 
 ## Run it on your computer
+1. Install Node.js (LTS) and run `npm install`.
+2. Create a Neon database (see below) and put `DATABASE_URL` and `SESSION_SECRET` in `.env.local`.
+3. `npm run db:migrate` (creates the tables)
+4. Set the `SEED_ADMIN_*` variables, then `npm run db:seed` (creates branches, reasons, shapes, a first term and the admin)
+5. `npm run dev` and open http://localhost:3000
+6. Before any release run `npm test`, `npm run lint` and `npm run build`. All three must pass.
 
-1. Install dependencies:
+## Deploy checklist (Vercel + Neon)
 
-   ```
-   npm install
-   ```
+### 1. Database (Neon)
+- [ ] Create a project at neon.tech (free tier is enough for ~300 kids).
+- [ ] Copy the **pooled** connection string (host contains `-pooler`). It is your `DATABASE_URL`.
+- [ ] On your computer, set `DATABASE_URL` to it, then run `npm run db:migrate`. All migrations (001 to 008) should be applied. Run it again: it should say nothing is left to apply.
+- [ ] Set the `SEED_ADMIN_*` variables and run `npm run db:seed` once. It is safe to run twice: existing rows are left alone.
+- [ ] Open the Neon console and check the tables exist, and there are 4 branches, 5 reasons, 7 shapes and 1 term.
 
-2. Create the `.env` file. If you ran Neon's `neon init`, it already contains `DATABASE_URL`. Add the other lines from `.env.example`:
+### 2. Code (GitHub)
+- [ ] Put the project in a GitHub repository. Make sure `.env.local` and `node_modules` are ignored (`.gitignore`).
+- [ ] `npm test`, `npm run lint` and `npm run build` pass on your computer.
 
-   - `SESSION_SECRET` — generate one with `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`
-   - `SEED_ADMIN_PHONE`, `SEED_ADMIN_PASSWORD` (at least 8 characters), `SEED_ADMIN_NAME`, `SEED_ADMIN_GENDER` (`male` or `female`) — the first admin account
+### 3. Hosting (Vercel)
+- [ ] Import the GitHub repository in Vercel (framework: Next.js, default settings).
+- [ ] Add the environment variables `DATABASE_URL` (pooled) and `SESSION_SECRET` for **Production**. The seed variables are not needed on Vercel.
+- [ ] Deploy and open the address Vercel gives you.
 
-   `.env` is ignored by git. Never commit it.
+### 4. First check on the live site
+- [ ] Log in as the admin (phone + the seed password). The "choose your own password" screen may appear; change the password now.
+- [ ] Admin home shows: accounts, terms, reasons, shapes, award history, add stars, leaderboard.
+- [ ] Terms: check the starting term's name and dates (edit if needed). It must be the active one.
+- [ ] Add a test kid and a test servant. Log in as each, from a phone.
+- [ ] As the servant: give the test kid stars (try a competition with a branch). Undo one.
+- [ ] As the kid: the home page shows the stars and chart, the 🎨 circle opens the shape picker, history shows the stars, the leaderboard shows the kid.
+- [ ] As the admin: award history shows the stars; void one and check the kid's total drops.
+- [ ] Delete the test accounts (or deactivate them).
 
-3. Create the tables and the starting data:
+### 5. Real data
+- [ ] Reasons: rename or add the reasons you really use.
+- [ ] Shapes: add or edit shapes and upload the real artwork.
+- [ ] Import the kids from a spreadsheet (accounts → import). Download the list of starting passwords right away: it is shown only once.
+- [ ] Hand each family their phone number and starting password. They can change it from the "كلمة السر" button, but they are not forced to.
 
-   ```
-   npm run db:migrate
-   npm run db:seed
-   ```
+## Day-to-day and yearly tasks
+- **New term:** admin → الترمات → add the new term → activate it. Old stars stay on the old term; leaderboards start fresh.
+- **Wrong award:** admin → سجل النجوم → find it → إلغاء. (A servant can also undo their own recent awards from the add-stars screen.)
+- **Forgotten password:** admin → open the account → reset password. The user sees the "choose your own password" screen again.
+- **Yearly promotion:** admin → accounts → promotion. It can be undone once, right after.
+- **Database changes later:** add a new numbered `.sql` file to `db/migrations/`, then run `npm run db:migrate` against the live database **before** deploying code that needs it.
 
-4. Start the app and open http://localhost:3000
+## Troubleshooting
+- *"SESSION_SECRET must be set..."* The variable is missing or shorter than 32 characters.
+- *Nobody can give stars:* no active term. Admin → الترمات → activate one.
+- *Pages work locally but the live site can't reach the database:* check that `DATABASE_URL` on Vercel is the pooled string and includes `sslmode=require`.
+- *A page says a table or column doesn't exist:* a migration was not applied. Run `npm run db:migrate` against the live database.
+- *Locked out after wrong passwords:* the account unlocks after 15 minutes, or the admin resets the password.
 
-   ```
-   npm run dev
-   ```
-
-   Log in with the admin phone and password you put in `.env`.
-
-`db:migrate` and `db:seed` are safe to run again; they skip anything that already exists. If the admin account already exists without a gender, running `db:seed` with `SEED_ADMIN_GENDER` set fills it in (it never overwrites a gender that is already set).
-
-## Tests
-
-`npm test` runs the checks for phone numbers and the Excel import parser.
-
-## Deploying to Vercel
-
-1. Import this GitHub repo in Vercel.
-2. In the project's Environment Variables add `DATABASE_URL` (use Neon's pooled connection string, whose host contains `-pooler`) and `SESSION_SECRET`.
-3. Deploy. Run `npm run db:migrate` and `npm run db:seed` from your computer; they use the same database.
-
-## Changing the wording
-
-Every sentence the app shows is in `src/lib/strings.ts`. Edit it there; no other file needs to change.
-
-## Notes
-
-- The logo is `public/logo.png`. The browser-tab icon is `src/app/icon.png` and `src/app/apple-icon.png`.
-
-- Star totals are always calculated from the `star_awards` table (a ledger). Mistakes are fixed by voiding an award, not by editing numbers.
-- Shapes are placeholders (emoji) for now. To use designed images later, set `image_url` on a shape.
-- The seed creates one starting term with placeholder dates (Sep 2026 – Jan 2027). Terms will be editable in the admin screen.
-- Phone numbers are private and never shown on leaderboards.
+## Privacy
+- Only logged-in users can see anything. Phone numbers are never shown to kids or on any leaderboard.
+- Leaderboards show first and second name only.
+- Passwords are stored hashed (bcrypt), never in plain text. Servant names and notes are never shown to kids.
+- Uploaded shape pictures are checked on the server (real PNG, small size) and served with a fixed image type.

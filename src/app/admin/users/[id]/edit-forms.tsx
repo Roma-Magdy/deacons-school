@@ -1,13 +1,15 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import type { Branch } from "@/lib/branches";
 import { text, type Gender, type Role } from "@/lib/strings";
 import {
+  deleteKid,
   resetPassword,
   setActive,
   updateUser,
   type ActiveState,
+  type DeleteState,
   type EditState,
   type ResetState,
 } from "../actions";
@@ -103,13 +105,23 @@ export function ResetPasswordForm({ id }: { id: number }) {
   );
 }
 
-export function ActiveForm({ id, isActive, isSelf }: { id: number; isActive: boolean; isSelf: boolean }) {
+export function ActiveForm({
+  id,
+  isActive,
+  isSelf,
+  graduatedYear,
+}: {
+  id: number;
+  isActive: boolean;
+  isSelf: boolean;
+  graduatedYear: number | null;
+}) {
   const [state, action, pending] = useActionState<ActiveState, FormData>(setActive, {});
 
   return (
     <form action={action} className="form staff-card">
       <h2>{ed.statusTitle}</h2>
-      <p className={isActive ? "muted" : "error"}>{isActive ? ed.activeNow : ed.inactiveNow}</p>
+      <p className={isActive ? "muted" : "error"}>{graduatedYear !== null ? ed.graduatedNow(graduatedYear) : isActive ? ed.activeNow : ed.inactiveNow}</p>
       <input type="hidden" name="id" value={id} />
       <input type="hidden" name="active" value={isActive ? "false" : "true"} />
 
@@ -122,6 +134,46 @@ export function ActiveForm({ id, isActive, isSelf }: { id: number; isActive: boo
       <button type="submit" className="button secondary" disabled={pending || (isSelf && isActive)}>
         {isActive ? ed.deactivate : ed.activate}
       </button>
+    </form>
+  );
+}
+
+export function DeleteKidForm({ id, name, starsTotal }: { id: number; name: string; starsTotal: number }) {
+  const [state, action, pending] = useActionState<DeleteState, FormData>(deleteKid, {});
+  // Two taps on purpose: the first only asks "are you sure?", so a stray tap can't delete anyone.
+  const [confirming, setConfirming] = useState(false);
+
+  return (
+    <form action={action} className="form staff-card danger-zone">
+      <h2>{ed.deleteTitle}</h2>
+      <p className="muted">{ed.deleteHint}</p>
+      <input type="hidden" name="id" value={id} />
+
+      {state.error && (
+        <p className="error" role="alert">
+          {state.error}
+        </p>
+      )}
+
+      {confirming ? (
+        <>
+          <p className="error" role="alert">
+            {ed.deleteConfirm(name, starsTotal)}
+          </p>
+          <div className="actions">
+            <button type="submit" className="button danger" disabled={pending}>
+              {pending ? ed.deleting : ed.deleteYes}
+            </button>
+            <button type="button" className="button secondary" onClick={() => setConfirming(false)} disabled={pending}>
+              {ed.deleteNo}
+            </button>
+          </div>
+        </>
+      ) : (
+        <button type="button" className="button danger-outline" onClick={() => setConfirming(true)}>
+          {ed.delete}
+        </button>
+      )}
     </form>
   );
 }

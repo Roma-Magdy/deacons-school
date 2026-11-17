@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { requireAdmin } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { IMPORT_CHUNK_SIZE, parseUserRows, validateUserFields } from "@/lib/import-parse.mjs";
@@ -43,6 +44,10 @@ async function readBranch(formData: FormData, role: string): Promise<{ ok: true;
   return rowCount ? { ok: true, id } : { ok: false };
 }
 
+function isForeignKeyViolation(err: unknown) {
+  return typeof err === "object" && err !== null && (err as { code?: string }).code === "23503";
+}
+
 async function nameOfPhoneOwner(phone: string): Promise<string> {
   const { rows } = await db.query("select full_name from users where phone = $1", [phone]);
   return rows[0]?.full_name ?? "";
@@ -73,8 +78,8 @@ export async function createUser(_prev: CreateState, formData: FormData): Promis
 
   try {
     await db.query(
-      `insert into users (phone, password_hash, full_name, role, grade, gender, branch_id)
-       values ($1, $2, $3, $4, $5, $6, $7)`,
+      `insert into users (phone, password_hash, full_name, role, grade, gender, branch_id, password_prompt)
+       values ($1, $2, $3, $4, $5, $6, $7, true)`,
       [v.value.phone, await hashPassword(password), v.value.name, role, v.value.grade, v.value.gender, branch.id],
     );
   } catch (err) {
@@ -150,7 +155,7 @@ export async function resetPassword(_prev: ResetState, formData: FormData): Prom
   const password = custom || generatePassword(rows[0].role === "kid" ? "kid" : "staff");
 
   // Also clears any lockout from too many wrong passwords.
-  await db.query("update users set password_hash = $2, failed_attempts = 0, locked_until = null where id = $1", [
+  await db.query("update users set password_hash = $2, failed_attempts = 0, locked_until = null, password_prompt = true where id = $1", [
     id,
     await hashPassword(password),
   ]);
@@ -171,12 +176,63 @@ export async function setActive(_prev: ActiveState, formData: FormData): Promise
   const active = formData.get("active") === "true";
   if (!active && id === admin.id) return { error: e.ownDeactivate };
 
-  const result = await db.query("update users set is_active = $2 where id = $1", [id, active]);
+  // Turning a graduate back on also brings them back from the archive.
+  const result = await db.query("update users set is_active = $2, graduated_year = case when $2 then null else graduated_year end where id = $1", [
+    id,
+    active,
+  ]);
   if (result.rowCount === 0) return { error: text.admin.edit.notFound };
 
   revalidatePath("/admin/users");
+  revalidatePath("/admin/users/archive");
   revalidatePath(`/admin/users/${id}`);
   return {};
+}
+
+// ---------- delete a kid ----------
+
+export type DeleteState = { error?: string };
+
+/**
+ * Permanently deletes a kid together with every star they earned. Only kids can be deleted: a servant or admin
+ * is named in other kids' star history (who gave or cancelled a star), so they are deactivated instead.
+ */
+export async function deleteKid(_prev: DeleteState, formData: FormData): Promise<DeleteState> {
+  await requireAdmin();
+
+  const id = Number(formData.get("id"));
+  if (!Number.isSafeInteger(id) || id <= 0) return { error: text.admin.edit.notFound };
+
+  let outcome: "deleted" | "notFound" | "notKid";
+  const client = await db.connect();
+  try {
+    await client.query("begin");
+    // The row is locked, so a star being given to this kid at the same moment waits for the delete instead of slipping in.
+    const { rows } = await client.query("select role from users where id = $1 for update", [id]);
+    if (!rows[0]) {
+      outcome = "notFound";
+    } else if (rows[0].role !== "kid") {
+      outcome = "notKid";
+    } else {
+      await client.query("delete from star_awards where kid_id = $1", [id]);
+      await client.query("delete from users where id = $1", [id]);
+      outcome = "deleted";
+    }
+    await client.query("commit");
+  } catch (err) {
+    await client.query("rollback").catch(() => {});
+    if (isForeignKeyViolation(err)) return { error: e.generic };
+    throw err;
+  } finally {
+    client.release();
+  }
+
+  if (outcome === "notFound") return { error: text.admin.edit.notFound };
+  if (outcome === "notKid") return { error: e.notKid };
+
+  revalidatePath("/admin/users");
+  revalidatePath("/stars");
+  redirect("/admin/users");
 }
 
 // ---------- import ----------
@@ -246,8 +302,8 @@ export async function importChunk(
 
     const password = generatePassword(role === "kid" ? "kid" : "staff");
     const inserted = await db.query(
-      `insert into users (phone, password_hash, full_name, role, grade, gender)
-       values ($1, $2, $3, $4, $5, $6)
+      `insert into users (phone, password_hash, full_name, role, grade, gender, password_prompt)
+       values ($1, $2, $3, $4, $5, $6, true)
        on conflict (phone) do nothing
        returning id`,
       [v.value.phone, await hashPassword(password), v.value.name, role, v.value.grade, v.value.gender],

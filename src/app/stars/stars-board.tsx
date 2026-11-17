@@ -1,24 +1,15 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
+import { pruneGroups } from "@/lib/recent-groups.mjs";
+import { matchesName } from "@/lib/search.mjs";
 import { DEFAULT_AMOUNT, MAX_AMOUNT, MAX_NOTE_LENGTH } from "@/lib/star-limits";
 import { arabicNumber, firstName, gradeLabel, kidsCount, starsCount, text } from "@/lib/strings";
-import { awardStars, voidAwards } from "./actions";
+import { awardStars, listRecent, voidAwards } from "./actions";
 import type { BranchItem, KidItem, ReasonItem, RecentGroup } from "./types";
 
 const t = text.stars;
 const GRADES = [3, 4, 5, 6];
-
-/** Makes Arabic search forgiving: ignores diacritics and treats أ/إ/آ, ى/ي and ة/ه as the same letter. */
-function normalize(s: string): string {
-  return s
-    .replace(/[\u064B-\u0652\u0640]/g, "")
-    .replace(/[أإآ]/g, "ا")
-    .replace(/ى/g, "ي")
-    .replace(/ة/g, "ه")
-    .toLowerCase()
-    .trim();
-}
 
 function Glyph({ emoji, imageUrl }: { emoji: string | null; imageUrl: string | null }) {
   if (imageUrl) {
@@ -36,17 +27,109 @@ function whoLabel(names: string[]): string {
 }
 
 type Message = { kind: "ok" | "error"; text: string; undoIds?: number[] };
+type Listing = { query: string; groups: RecentGroup[]; hasMore: boolean; error?: string };
+
+/** One "give stars" tap in the history: cancel all of it, or open the names and cancel a single kid. Always asks first. */
+function RecentItem({
+  group,
+  query,
+  busy,
+  onUndo,
+}: {
+  group: RecentGroup;
+  query: string;
+  busy: boolean;
+  onUndo: (ids: number[]) => Promise<boolean>;
+}) {
+  const [open, setOpen] = useState(false);
+  const [confirm, setConfirm] = useState<"all" | number | null>(null);
+
+  const many = group.kids.length > 1;
+  const matched = query ? group.kids.filter((name) => matchesName(name, query)) : [];
+
+  async function cancel(ids: number[]) {
+    await onUndo(ids);
+    setConfirm(null);
+  }
+
+  const confirmButtons = (ids: number[]) => (
+    <span className="recent-confirm">
+      <button type="button" className="button small" disabled={busy} onClick={() => cancel(ids)}>
+        {t.yesUndo}
+      </button>
+      <button type="button" className="button secondary small" disabled={busy} onClick={() => setConfirm(null)}>
+        {t.noKeep}
+      </button>
+    </span>
+  );
+
+  return (
+    <li className="recent-item">
+      <div className="recent-main">
+        <strong>{whoLabel(group.kids)}</strong>
+        <div className="muted">
+          {group.reason}
+          {group.branch ? ` · ${group.branch}` : ""} · {starsCount(group.amount)} · {group.when}
+        </div>
+        {matched.length > 0 && (
+          <div className="recent-match">
+            {t.matched(matched.length <= 2 ? matched.join("، ") : `${matched.slice(0, 2).join("، ")} ${t.andMore(matched.length - 2)}`)}
+          </div>
+        )}
+        {many && (
+          <button type="button" className="stars-link" aria-expanded={open} onClick={() => setOpen(!open)}>
+            {open ? t.hideNames : t.showNames(group.kids.length)}
+          </button>
+        )}
+        {open && (
+          <ul className="recent-names">
+            {group.kids.map((name, i) => (
+              <li key={group.ids[i]} data-match={query !== "" && matchesName(name, query)}>
+                <strong>{name}</strong>
+                {confirm === group.ids[i] ? (
+                  <span className="recent-confirm">
+                    <span>{t.confirmUndoOne(firstName(name))}</span>
+                    {confirmButtons([group.ids[i]])}
+                  </span>
+                ) : (
+                  <button type="button" className="button secondary small" disabled={busy} onClick={() => setConfirm(group.ids[i])}>
+                    {t.undoOne}
+                  </button>
+                )}
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+
+      <div className="recent-actions">
+        {confirm === "all" ? (
+          <>
+            <span>{t.confirmUndoAll(group.kids.length)}</span>
+            {confirmButtons(group.ids)}
+          </>
+        ) : (
+          <button type="button" className="button secondary" disabled={busy} onClick={() => setConfirm("all")}>
+            {many ? t.undoAll : t.undo}
+          </button>
+        )}
+      </div>
+    </li>
+  );
+}
 
 export default function StarsBoard({
   kids,
   reasons,
   branches,
   recent,
+  recentHasMore,
 }: {
   kids: KidItem[];
   reasons: ReasonItem[];
   branches: BranchItem[];
   recent: RecentGroup[];
+  recentHasMore: boolean;
 }) {
   const [grade, setGrade] = useState<number>(() => GRADES.find((g) => kids.some((k) => k.grade === g)) ?? 0);
   const [query, setQuery] = useState("");
@@ -59,11 +142,51 @@ export default function StarsBoard({
   const [message, setMessage] = useState<Message | null>(null);
   const [pending, startTransition] = useTransition();
 
+  // History ("آخر اللي اديته"): the newest page comes from the server with the screen; searching and "show more" ask the server.
+  const [recentQuery, setRecentQuery] = useState("");
+  const [searchResult, setSearchResult] = useState<Listing | null>(null);
+  const [more, setMore] = useState<{ key: string; groups: RecentGroup[]; hasMore: boolean } | null>(null);
+  const [cancelled, setCancelled] = useState<Set<number>>(new Set());
+  const [undoing, setUndoing] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
+
+  // When the server sends a fresh first page (after giving or cancelling), pages loaded earlier are dropped with it.
+  const recentKey = recent.map((g) => g.gid).join(",");
+  const moreNow = more && more.key === recentKey ? more : null;
+  const trimmedQuery = recentQuery.trim();
+  const searching = trimmedQuery !== "" && searchResult?.query !== trimmedQuery;
+  const listing: Listing =
+    trimmedQuery === ""
+      ? { query: "", groups: [...recent, ...(moreNow?.groups ?? [])], hasMore: moreNow ? moreNow.hasMore : recentHasMore }
+      : searchResult?.query === trimmedQuery
+        ? searchResult
+        : { query: trimmedQuery, groups: [], hasMore: false };
+  const shownRecent = pruneGroups(listing.groups, cancelled);
+
+  useEffect(() => {
+    if (trimmedQuery === "") return;
+    let stale = false;
+    // Waits for a short pause in typing, so every letter doesn't hit the server.
+    const timer = setTimeout(async () => {
+      let next: Listing;
+      try {
+        const r = await listRecent({ query: trimmedQuery, offset: 0 });
+        next = r.ok ? { query: trimmedQuery, groups: r.groups, hasMore: r.hasMore } : { query: trimmedQuery, groups: [], hasMore: false, error: r.error };
+      } catch {
+        next = { query: trimmedQuery, groups: [], hasMore: false, error: t.errors.generic };
+      }
+      if (!stale) setSearchResult(next);
+    }, 300);
+    return () => {
+      stale = true;
+      clearTimeout(timer);
+    };
+  }, [trimmedQuery]);
+
   const reason = reasons.find((r) => r.id === reasonId);
 
   const visible = useMemo(() => {
-    const q = normalize(query);
-    return kids.filter((k) => (grade === 0 || k.grade === grade) && (q === "" || normalize(k.name).includes(q)));
+    return kids.filter((k) => (grade === 0 || k.grade === grade) && matchesName(k.name, query));
   }, [kids, grade, query]);
 
   const allVisibleSelected = visible.length > 0 && visible.every((k) => selected.has(k.id));
@@ -116,6 +239,8 @@ export default function StarsBoard({
         setSelected(new Set());
         setNote("");
         setShowNote(false);
+        setRecentQuery("");
+        setSearchResult(null);
         const who = chosen.length === 1 ? firstName(chosen[0].name) : kidsCount(chosen.length);
         setMessage({ kind: "ok", text: t.done(amount, who), undoIds: result.ids });
       } else {
@@ -124,12 +249,49 @@ export default function StarsBoard({
     });
   }
 
-  function undo(ids: number[]) {
-    if (pending) return;
-    startTransition(async () => {
+  /** Cancels awards (the server only allows this servant's own awards of this term) and hides them right away. */
+  async function undoIds(ids: number[]): Promise<boolean> {
+    if (undoing) return false;
+    setUndoing(true);
+    try {
       const result = await voidAwards(ids);
-      setMessage(result.ok ? { kind: "ok", text: t.undone } : { kind: "error", text: result.error });
-    });
+      if (!result.ok) {
+        setMessage({ kind: "error", text: result.error });
+        return false;
+      }
+      setCancelled((prev) => new Set([...prev, ...ids]));
+      setMessage({ kind: "ok", text: t.undone });
+      return true;
+    } catch {
+      setMessage({ kind: "error", text: t.errors.generic });
+      return false;
+    } finally {
+      setUndoing(false);
+    }
+  }
+
+  async function loadMore() {
+    if (loadingMore) return;
+    setLoadingMore(true);
+    try {
+      // The server counts only entries that still exist, and so does shownRecent.
+      const r = await listRecent({ query: trimmedQuery, offset: shownRecent.length });
+      if (!r.ok) {
+        setMessage({ kind: "error", text: r.error });
+        return;
+      }
+      const have = new Set(listing.groups.map((g) => g.gid));
+      const fresh = r.groups.filter((g) => !have.has(g.gid));
+      if (trimmedQuery === "") {
+        setMore({ key: recentKey, groups: [...(moreNow?.groups ?? []), ...fresh], hasMore: r.hasMore });
+      } else {
+        setSearchResult((prev) => (prev && prev.query === trimmedQuery ? { ...prev, groups: [...prev.groups, ...fresh], hasMore: r.hasMore } : prev));
+      }
+    } catch {
+      setMessage({ kind: "error", text: t.errors.generic });
+    } finally {
+      setLoadingMore(false);
+    }
   }
 
   return (
@@ -199,7 +361,7 @@ export default function StarsBoard({
           <div className={message.kind === "ok" ? "success stars-notice" : "error stars-notice"} role="status">
             <span>{message.text}</span>
             {message.undoIds && (
-              <button type="button" className="button secondary" disabled={pending} onClick={() => undo(message.undoIds!)}>
+              <button type="button" className="button secondary" disabled={pending || undoing} onClick={() => undoIds(message.undoIds!)}>
                 {t.undo}
               </button>
             )}
@@ -270,25 +432,35 @@ export default function StarsBoard({
 
       <section className="stars-recent">
         <h2>{t.recentTitle}</h2>
-        {recent.length === 0 ? (
-          <p className="muted">{t.recentEmpty}</p>
+        <p className="muted">{t.recentHint}</p>
+
+        <label className="field">
+          <input
+            type="search"
+            value={recentQuery}
+            onChange={(e) => setRecentQuery(e.target.value)}
+            placeholder={t.recentSearch}
+            aria-label={t.recentSearch}
+            autoComplete="off"
+          />
+        </label>
+
+        {listing.error ? (
+          <p className="error">{listing.error}</p>
+        ) : shownRecent.length === 0 ? (
+          <p className="muted">{searching ? t.recentSearching : trimmedQuery !== "" ? t.recentNoMatch : t.recentEmpty}</p>
         ) : (
           <ul className="recent-list">
-            {recent.map((g) => (
-              <li key={g.ids[0]} className="recent-item">
-                <div>
-                  <strong>{whoLabel(g.kids)}</strong>
-                  <div className="muted">
-                    {g.reason}
-                    {g.branch ? ` · ${g.branch}` : ""} · {starsCount(g.amount)} · {g.when}
-                  </div>
-                </div>
-                <button type="button" className="button secondary" disabled={pending} onClick={() => undo(g.ids)}>
-                  {t.undo}
-                </button>
-              </li>
+            {shownRecent.map((g) => (
+              <RecentItem key={g.gid} group={g} query={trimmedQuery} busy={pending || undoing} onUndo={undoIds} />
             ))}
           </ul>
+        )}
+
+        {listing.hasMore && !listing.error && (
+          <button type="button" className="button secondary stars-more" disabled={loadingMore} onClick={loadMore}>
+            {loadingMore ? t.giving : t.recentMore}
+          </button>
         )}
       </section>
     </>
