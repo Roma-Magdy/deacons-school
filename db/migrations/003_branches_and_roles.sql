@@ -14,6 +14,8 @@ begin
   end loop;
 end $$;
 
+-- A brand-new database already has this constraint (001 creates it without branch_leader), so drop it first.
+alter table users drop constraint if exists users_role_check;
 alter table users add constraint users_role_check check (role in ('kid', 'servant', 'admin'));
 
 update branches set slug = 'memorization' where slug = 'archives';
